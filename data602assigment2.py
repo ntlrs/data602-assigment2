@@ -5,98 +5,132 @@ Created on Sat Mar 31 20:25:42 2018
 
 @author: ntlrsmllghn
 """
-
-import numpy as np
-import pandas as pd
 import requests
+import matplotlib.pyplot as plt
+import pandas as pd
 import json
+import io
+import time
+import datetime as dt
+
 
 api_request = requests.get("https://api.coinmarketcap.com/v1/ticker/?limit=0")
 api = json.loads(api_request.content)
 
-currencies = []
 
-coins_list=[]
-for coins in api:
-    coins_list.append(coins["symbol"])
-
-len(coins_list)
-coins_list[:5]
-
-#Blotter
-blotter = [{"sym","volume","price", "cost", "total_price","date","cash"}]
-
-portfolio_profit_loss = 0
-
-
-for x in api:
-    for coin["sym"] in blotter:
-        if coin == x["symbol"]:
-            #math
-            
-            cost = float(blotter["price"]) * float(blotter["volume"])
-            current_value = float(blotter["price"]) * float(x["price_usd"])
-            profit_loss = cost - current_value
-            portfolio_profit_loss += profit_loss
-            profit_loss_per_coin = float(x["price_usd"]) - float(blotter["volume"])
-            
-            
-            
-            print(x["name"])
-            print("${0:.2f}".format(float(profit_loss_per_coin)))
-            print("${0:.2f}".format(float(x["price_usd"])))
-            print("cost: ${0.2f}".format(float([cost])))
-            print("currnt value: ${0.2f}".format(float([current_value])))
-            print("Profit/Loss: ${0.2f}".format(float([profit_loss])))
            
             
-print("Portfolio Profit/Loss: ${0:.2f}".format(float(portfolio_profit_loss)))
+def main():    
+    # Initial portfolio size in cash
+    funds = 100000000.0
+    pairs = ['ethusd','btcusd'] # assume usd base
 
-def main_menu():       #main menu
-    print 30 * "-" , "MENU" , 30 * "-"
-    print("1. Trade")
-    print("2. Show Blotter")
-    print("3. Show P/L")
-    print("4. Quit")
-    print (67 * "-")
-    choice = input("Please Select [1-4]: ")
-  
-    if choice == 1:     
-        print("1. Return to Main Menu")
-        print("2. Quit")
-        select = input("Please Select [1 or 2]: ")
-        if select == 1:
-            main_menu()
-        elif select == 2:
-            sys.exit(0)
-                
-    elif choice == 2:
-        print("Viewing Blotter") 
-        print("Return to Main Menu or Quit?")
-        print("1. Return to Main Menu")
-        print("2. Quit")
-        select = input("Please Select [1 or 2]: ")
-        if select == 1:
-            main_menu()
-        elif select == 2:
-            sys.exit(0)
+    # Initialize data structures
+    df_blotter = initialize_blotter()
+    df_pl = initialize_pl(pairs)
+    df_products = get_products()
+
+    # Design a menu a system 
+    menu = ('Buy', 'Sell', 'Show Blotter', 'Show PL', 'Quit')
+    while True:
+        choice = display_menu(menu,exit_option=5)
+        if choice == 1:
+            # Buy
+            print("Choice 1 chosen")
+        elif choice == 2:
+            print("Choice 2 chosen")
+            # Sell
+        elif choice == 3:
+            view_blotter(df_blotter)
+        elif choice == 4:
+            view_pl(df_pl)
+        # Complete rest
+
+def display_menu(menu,exit_option=-1):
+    for m in menu:
+        print(menu.index(m)+1,". ",m)
+    choice = int(input("Enter choice >> #"))
+    if choice==exit_option:
+        print("Bye")
+        quit()
+    return choice
+
+def calc_vwap(current_qty,current_vwap,qty,price):
+    dollar = current_qty * current_vwap
+    new_dollar = dollar + (qty * price)
+    new_qty = current_qty + qty
+    new_vwap = new_dollar / new_qty
+    return new_vwap
+
+def update_pl(pl,pair,qty,price):
+    if qty > 0: # buy
+        current_qty = pl.at[pair,'Position']
+        current_vwap = pl.at[pair,'VWAP']
+        new_vwap = calc_vwap(current_qty,current_vwap,qty,price)
+        pl.at[pair,'Position'] = current_qty + qty
+        pl.at[pair,'VWAP'] = new_vwap
         
-              
-    elif choice == 3:
-        print ("Show P/L")   
-        print("1. Return to Main Menu")
-        print("2. Quit")
-        select = input("Please Select [1 or 2]: ")
-        if select == 1:
-            main_menu()
-        elif select == 2:
-            sys.exit(0)
         
-    elif choice == 4:
-        print ("Quit")
-        sys.exit(0)
         
-    else:
-        # Any integer inputs other than values 1-4 we print an error message
-        input("Not An Option")
-        main_menu()
+        # TODO Recalc UPL
+    elif qty < 0: #sell
+        # TODO recalc UPL, RPL, position
+        
+        
+        
+        print("Insert code handling a sale - recalc UPL,RPL & position")
+    
+	return pl
+
+def view_blotter(df_blotter):
+    print("---- Trade Blotter")
+    print(df_blotter)
+    print()
+
+
+def view_pl(df_pl):
+    # TODO Update UPL here
+    print("---- PL")
+    print(df_pl)
+    print()
+
+
+def get_price(pair):
+    df = load('https://api.gdax.com/products/'+pair+'/book',printout=False)
+    ask = df.iloc[0]['asks'][0]
+    bid = df.iloc[0]['bids'][0]
+    return float(bid), float(ask)
+
+
+def initialize_blotter():
+    col_names = ['Pair','Quantity','Price', 'Cost', 'Date', 'Cash Balance']
+    return pd.DataFrame(columns=col_names)
+
+
+def initialize_pl(pairs):
+    col_names = ['Pairs','Position','VWAP','UPL','RPL']
+    pl = pd.DataFrame(columns=col_names)
+    for p in pairs:
+        data = pd.DataFrame([[p,0,0,0,0]] ,columns=col_names)
+        pl = pl.append(data, ignore_index=True)
+    pl = pl.set_index('Pairs')
+    return pl
+
+def get_products():
+    df = load('https://api.gdax.com/products',printout=False)
+    return df
+
+def load(url,printout=False,delay=0,remove_bottom_rows=0,remove_columns=[]):
+    time.sleep(delay)
+    header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'}
+    r = requests.get(url, headers=header)
+    df = pd.read_json(r.text)
+    if remove_bottom_rows > 0:
+        df.drop(df.tail(remove_bottom_rows).index,inplace=True)
+    df.drop(columns=remove_columns,axis=1)
+    df = df.dropna(axis=1)
+    if printout:
+        print(df)
+    return df
+
+main()
