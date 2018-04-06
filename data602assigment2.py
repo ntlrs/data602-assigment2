@@ -13,18 +13,27 @@ import io
 import time
 import datetime as dt
 
-
-api_request = requests.get("https://api.coinmarketcap.com/v1/ticker/?limit=0")
+api_request = requests.get("https://api.gdax.com/products")
 api = json.loads(api_request.content)
 
+base_currency = ["USD"]
 
-           
-            
+pairs = []   
+for x in api:
+    for prods in base_currency:
+        if prods == x["quote_currency"]:
+            trade = (x["id"])
+            trade = str(trade)
+            y = (trade)
+            pairs.append(y)
+
+                       
 def main():    
     # Initial portfolio size in cash
     funds = 100000000.0
-    pairs = ['ethusd','btcusd'] # assume usd base
-
+    pair = pairs # assume usd base
+        
+    
     # Initialize data structures
     df_blotter = initialize_blotter()
     df_pl = initialize_pl(pairs)
@@ -44,7 +53,13 @@ def main():
             view_blotter(df_blotter)
         elif choice == 4:
             view_pl(df_pl)
-        # Complete rest
+        elif choice == 5:
+            print("goodbye")
+            break
+        else:
+            print("Not an option")
+            print("\n\n\n\n")
+            main()
 
 def display_menu(menu,exit_option=-1):
     for m in menu:
@@ -62,41 +77,53 @@ def calc_vwap(current_qty,current_vwap,qty,price):
     new_vwap = new_dollar / new_qty
     return new_vwap
 
-def update_pl(pl,pair,qty,price):
+def update_pl(pl,pairs,qty,price):
     if qty > 0: # buy
-        current_qty = pl.at[pair,'Position']
-        current_vwap = pl.at[pair,'VWAP']
-        new_vwap = calc_vwap(current_qty,current_vwap,qty,price)
-        pl.at[pair,'Position'] = current_qty + qty
-        pl.at[pair,'VWAP'] = new_vwap
-        
-        
-        
+        current_qty = pl.at[pairs,'Position']
+        current_vwap = pl.at[pairs,'VWAP']
+        new_vwap = calc_vwap(current_qty,current_vwap,qty,price) #bid
+        pl.at[pairs,'Position'] = current_qty + qty
+        pl.at[pairs,'VWAP'] = new_vwap
+        mkt_value = qty * current_vwap
+        upl = price - mkt_value
+        pl.at[pairs, 'UPL'] = upl
+        rpl = pl.at[pairs, 'RPL']
+        total_pl = upl + rpl
+        pl.at[pairs, 'Total PL'] = total_pl
         # TODO Recalc UPL
     elif qty < 0: #sell
-        # TODO recalc UPL, RPL, position
-        
-        
+        current_qty = pl.at[pairs,'Position']
+        current_vwap = pl.at[pairs,'VWAP']
+        new_vwap = calc_vwap(current_qty,current_vwap,qty,price) #ask
+        pl.at[pairs, 'Position'] = current_qty - qty
+        pl.at[pairs,'VWAP'] = new_vwap
+        rpl = (price - current_vwap) * qty
+        pl.at[pairs, 'RPL'] = rpl
+        new_upl = (current_qty * current_vwap) - rpl
+        pl.at[pairs, 'UPL'] = new_upl
+        total_pl = upl + rpl
+        pl.at[pairs, 'Total PL'] = total_pl
         
         print("Insert code handling a sale - recalc UPL,RPL & position")
-    
-	return pl
+
+
+
 
 def view_blotter(df_blotter):
     print("---- Trade Blotter")
     print(df_blotter)
-    print()
+    print("\n\n")
 
 
 def view_pl(df_pl):
     # TODO Update UPL here
     print("---- PL")
     print(df_pl)
-    print()
+    print("\n\n")
 
 
-def get_price(pair):
-    df = load('https://api.gdax.com/products/'+pair+'/book',printout=False)
+def get_price(pairs):
+    df = load('https://api.gdax.com/products/'+pairs+'/book',printout=False)
     ask = df.iloc[0]['asks'][0]
     bid = df.iloc[0]['bids'][0]
     return float(bid), float(ask)
@@ -108,10 +135,10 @@ def initialize_blotter():
 
 
 def initialize_pl(pairs):
-    col_names = ['Pairs','Position','VWAP','UPL','RPL']
+    col_names = ['Pairs','Position','VWAP','UPL','RPL', 'Total PL']
     pl = pd.DataFrame(columns=col_names)
     for p in pairs:
-        data = pd.DataFrame([[p,0,0,0,0]] ,columns=col_names)
+        data = pd.DataFrame([[p,0,0,0,0,0]] ,columns=col_names)
         pl = pl.append(data, ignore_index=True)
     pl = pl.set_index('Pairs')
     return pl
