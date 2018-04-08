@@ -17,22 +17,11 @@ import datetime as dt
 api_request = requests.get("https://api.gdax.com/products")
 api = json.loads(api_request.content)
 
-base_currency = ["USD"]
-
-pairs = []   
-for x in api:
-    for prods in base_currency:
-        if prods == x["quote_currency"]:
-            trade = (x["id"])
-            trade = str(trade)
-            y = (trade)
-            pairs.append(y)
-
                        
 def main():    
     # Initial portfolio size in cash
     funds = 100000000.0
-    pair = pairs # assume usd base
+    pairs = ['BCH-USD', 'BTC-USD', 'ETH-USD', 'LTC-USD'] # assume usd base
         
     
     # Initialize data structures
@@ -125,9 +114,16 @@ def view_pl(df_pl):
 
 def get_price(pairs):
     df = load('https://api.gdax.com/products/'+pairs+'/book',printout=False)
-    ask = df.iloc[0]['asks'][0]
-    bid = df.iloc[0]['bids'][0]
-    return float(bid), float(ask)
+    ask = df.iloc[0]['ask'][0]
+    bid = df.iloc[0]['bid'][0]
+    return float(ask), float(bid)
+
+def get_stats(pairs):
+    r = requests.get('https://api.gdax.com/products/'+pairs+'/stats')
+    df = pd.read_json('['+r.text+']')
+    high = r.json()
+    low = r.json()['low']
+    return float(high), float(low)
 
 
 def initialize_blotter():
@@ -136,10 +132,10 @@ def initialize_blotter():
 
 
 def initialize_pl(pairs):
-    col_names = ['Pairs','Position','VWAP','UPL','RPL', 'Total PL']
+    col_names = ['Pairs','Position','VWAP','UPL','RPL', 'Total PL', 'Allocated By Share', 'Allocated By Dollar']
     pl = pd.DataFrame(columns=col_names)
     for p in pairs:
-        data = pd.DataFrame([[p,0,0,0,0,0]] ,columns=col_names)
+        data = pd.DataFrame([[p,0,0,0,0,0,0,0]] ,columns=col_names)
         pl = pl.append(data, ignore_index=True)
     pl = pl.set_index('Pairs')
     return pl
