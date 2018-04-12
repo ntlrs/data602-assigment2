@@ -11,9 +11,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import io
-import datetime as time
+from datetime import datetime
 import gdax
 from math import sqrt
+from pymongo import MongoClient
+import time
+
+
+
+
 
 client = gdax.PublicClient()
 
@@ -83,7 +89,7 @@ def buy(pairs):
     if buying == 1:
         pair = 'BCH-USD'
         share_volume = int(input('How Many Shares?: '))
-        price = get_ask('BCH-USD')
+        price = get_bid('BCH-USD')
         cost = float(price * share_volume)
         date = datetime.datetime.now()
         everything = (pair, share_volume, price, cost, date)
@@ -92,22 +98,55 @@ def buy(pairs):
         print(dailymean('BCH-USD'))
         print(get_historical('BCH-USD'))
         return pair, share_volume, cost, date
-    
-    
+        #return the value of the cash on hand
+        #add values to pandas dataframe
+        #return daily min, max (from pandas?)
+        #return std (from pandas)
         
-       
-                
-   
-    
-def sell():
+        
+        #if price > (pandas data frame that has cash on hand):
+        #print("Not Enough Funds")
+        #print(buy(pairs))
+        
+        #visualization: 
+        #def 100dytrade(x_data, x_label, y1_data, y1_color, y1_label, y2_data, y2_color, y2_label, title):
+                            
+        
+        
+def sell(pairs):
     print("Please Choose The Pairs You Woud Like To Sell")
     print("Please Choose From The Following Pairs")
     print('/n')
-    print("1. BCH-USD quote:" )
-    print("2. BTC-USD quote:" )
-    print("3. ETH-USD quote:" )
-    print("4. LTC-USD quote:" )
+    print("1. BCH-USD" )
+    print("2. BTC-USD" )
+    print("3. ETH-USD" )
+    print("4. LTC-USD" )
     print("5. Return to Main Menu")
+    print('\n\n')
+    selling = input("Please Select [1:5]: ")
+    
+    if selling == 1:
+        pair = 'BCH-USD'
+        share_volume = int(input('How Many Shares Are You Selling?: '))
+        price = get_ask('BCH-USD')
+        cost = float(price * share_volume)
+        date = datetime.datetime.now()
+        everything = (pair, share_volume, price, cost, date)
+        return pair, share_volume, cost, date
+        #return the value of the cash on hand
+        #add values to pandas dataframe
+        
+        
+        
+        
+    #while pair > (pandas entry that has how many stocks you have on hand:
+        #print("Not Enought Stocks To Make Transaction")
+        #share_volume2= int(input('How Many Shares Are You Selling?: ')) 
+    #else:
+        #price2 = round(price * share_volume2,2)
+        #price2 = str(price2)
+        #print("Your total amount is : $"+price2)
+        
     
 
 def calc_vwap(current_qty,current_vwap,qty,price):
@@ -133,7 +172,9 @@ def update_pl(pl,pairs,qty,price):
         
         
         
-        # TODO Recalc UPL
+        # TODO update 'Allocated By Share', 'Allocated By Dollar'
+        #results = pl.append(results)
+    
     elif qty < 0: #sell
         current_qty = pl.at[pairs,'Position']
         current_vwap = pl.at[pairs,'VWAP']
@@ -149,9 +190,11 @@ def update_pl(pl,pairs,qty,price):
         
         print("Insert code handling a sale - recalc UPL,RPL & position")
 
-
-def current_cash():
-    pass
+        # TODO update 'Allocated By Share', 'Allocated By Dollar'
+        #results = pl.append(results)
+        
+#def current_cash():
+   # pass
 
 def view_blotter(df_blotter):
     print("---- Trade Blotter")
@@ -195,18 +238,20 @@ def low(pairs):
     low = r.json()['low']
     return float(low)
 
-def dailymean(pairs):
-    mean = (high + low) /2
-    return mean
+#def dailymean(pairs):
+    #mean = (high() + low()) /2
+    #return mean
+    
+    #get the mean to work, maybe this also needs to be a pandas dataframe
 
 
 def get_historical(pairs):
     df = client.get_product_historic_rates(pairs, granularity = 86400)
     return df
-
+    #should this go to a pandas dataframe that I access?
 
 def initialize_blotter():
-    col_names = ['Pair','Quantity','Price', 'Cost', 'Date', 'Cash Balance']
+    col_names = ['Pairs','Quantity','Price', 'Cost', 'Date', 'Cash Balance']
     return pd.DataFrame(columns=col_names)
 
 
@@ -235,8 +280,6 @@ def load(url,printout=False,delay=0,remove_bottom_rows=0,remove_columns=[]):
     if printout:
         print(df)
     return df
-
-
 
 
 main()
