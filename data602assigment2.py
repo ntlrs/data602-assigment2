@@ -129,6 +129,8 @@ def get_price(pairs):
     return float(bid), float(ask)
 
 
+
+
 def initialize_blotter():
     col_names = ['Pair','Quantity','Price', 'Cost', 'Date', 'Cash Balance']
     return pd.DataFrame(columns=col_names)

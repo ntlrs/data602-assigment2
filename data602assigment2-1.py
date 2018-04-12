@@ -13,7 +13,9 @@ import json
 import io
 import time
 import datetime as dt
+import gdax
 
+client = gdax.PublicClient()
 api_request = requests.get("https://api.gdax.com/products")
 api = json.loads(api_request.content)
 
@@ -121,9 +123,13 @@ def get_price(pairs):
 def get_stats(pairs):
     r = requests.get('https://api.gdax.com/products/'+pairs+'/stats')
     df = pd.read_json('['+r.text+']')
-    high = r.json()
+    high = r.json()['high']
     low = r.json()['low']
     return float(high), float(low)
+
+def get_historical(pairs):
+    df = client.get_product_hisotric_rates(pairs, granularity = 86400 * 100)
+    return df
 
 
 def initialize_blotter():
