@@ -174,6 +174,7 @@ def update_pl(pl,pairs,qty,price):
         
         # TODO update 'Allocated By Share', 'Allocated By Dollar'
         #results = pl.append(results)
+        #add a return
     
     elif qty < 0: #sell
         current_qty = pl.at[pairs,'Position']
@@ -192,6 +193,7 @@ def update_pl(pl,pairs,qty,price):
 
         # TODO update 'Allocated By Share', 'Allocated By Dollar'
         #results = pl.append(results)
+        #add a return
         
 #def current_cash():
    # pass
