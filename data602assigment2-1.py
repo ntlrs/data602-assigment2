@@ -10,49 +10,42 @@ import requests
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
-import io
+
 from datetime import datetime, timedelta
-from math import sqrt
+
 from pymongo import MongoClient
 from time import strftime, gmtime
 from statistics import stdev
 
-import numpy as np
+   
+#reference: https://www.youtube.com/watch?v=8GRUwftKAps
+
 
                        
 def main():    
-    # Initial portfolio size in cash
-    cash = 100000000.0
-    
+    funds = 100000000.0 
+       
+    mongo = 'mongodb://test:test@ds235239.mlab.com:35239/data6022'
+    client = MongoClient(mongo, connectTimeoutMS=30000)
+    db = client.get_database("data602")
+    db_blotter = db.db_blotter
     
     # Initialize data structures
-    df_blotter = initialize_blotter()
     df_pl = initialize_pl()
-
-    client = MongoClient()
-    db = client.blotter
-    collection = db.blotter
-    new_line = {"Pair" : "Pair", 
-            "Quantity" : "qty",
-            "Price" : "Price", 
-            "Cost" : "Total Cost",
-            "Date" : "Date"
-        }
-    collection.insert_one(new_line)
-   
     
+
     # Design a menu a system 
     menu = ('Buy', 'Sell', 'Show Blotter', 'Show PL', 'Quit')
     while True:
         choice = display_menu(menu,exit_option=5)
         if choice == 1:
-            buy(df_blotter, collection)
+            buy()
                     
         elif choice == 2:       
-            sell()
+            sell(db_blotter)
         
         elif choice == 3:
-            view_blotter(df_blotter)
+            view_blotter(blotter)
         
         elif choice == 4:
             view_pl(df_pl)
@@ -78,7 +71,8 @@ def display_menu(menu,exit_option=-1):
 
 
 ################################################
-def buy(df_blotter, collection):
+def buy():
+
     pair = {1:"BCH-USD", 2: "BTC-USD", 3: "ETH-USD", 4: "LTC-USD", 5: "Main Menu"}
     print("Please Choose From The Following Pair")
     print('\n')
@@ -112,6 +106,7 @@ def buy(df_blotter, collection):
         
         
         while True:
+            
             qty =  int(input("how much would you like to purchase?: "))
             ask, bid = get_price(pair)
             
@@ -122,65 +117,57 @@ def buy(df_blotter, collection):
             print("your total is: " + str(total_cost))
             print("\n")
             date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-            df_blotter = update_blotter(pair, qty, price, total_cost, date)
-            new_line = ({"Pair": pair, "Quantity" : qty, "Price": price, "Cost": total_cost, "Date": date})
-            df_blotter = df_blotter.append(new_line, ignore_index = True)
-            collection.insert_one(new_line)
+            
+            new_line = {"Pair": pair, "Quantity" : qty, "Price": price, "Cost": total_cost, "Date": date}
             
             dailymin, dailymax = get_stats(pair)
-            print("\n")
-            print("The daily high for " + pair + " is " + str(dailymax))
-            print("The daily low for " + pair + " is " + str(dailymin))
+            print("The daily high for " + pair + " is " + str(dailymin))
+            print("The daily low for " + pair + " is " + str(dailymax))
             
             mean = dailymean(dailymin, dailymax)
-            print("\n")
             print("The daily mean for " + pair + " is " + str(mean))
             
             stddev = stdev([dailymax, dailymin])
-            print("\n")
             print("The daily standard deviation for " + pair + " is " + str(stddev))
             print("\n")
             
             hist = history(pair)
             print(hist)
             #df_pl = update_pl(pl, pair, qty, price, total_cost)
-            print("\n")
-            print(df_blotter)
-           
-        
+            
+            
+            
+            data = pd.DataFrame([["Buy", pair, qty, ask, date, total_cost]], columns= ['Side','Pair','Volume','Executed Price', 'Time' , 'Cash Balance'])
+            blotter_update = df_blotter.append(data, ignore_index = True)
+            print(blotter_update)
+            
             print("\n\n")
             print("Would You Like To Buy More or Return to Main Menu?: ")
             print("1. Buy Again")
             print("2. Main Menu")
             finish = int(input("Please Choose [1-2]: "))
             if finish == 1:
-                buy(df_blotter, collection)
+                buy(db_blotter, df_blotter, blotter)
             elif finish == 2:
                 print(main())
             else:
                 print("Not An Option")
                 print("\n\n")
-                print(buy(df_blotter, collection))
+                print(buy(db_blotter, df_blotter, blotter))
             
-        
-    #if cost > cash:
-       # print("Not Enough Cash For Transaction")
-        #print(main())
+            
+            #if cost > cash:
+            # print("Not Enough Cash For Transaction")
+            #print(main())
 
          
     
         #return the value of the cash on hand
         #add values to pandas dataframe
-        #return daily min, max (from pandas?)
-        #return std (from pandas)
         
         
-        #visualization: 
-        #def 100dytrade(x_data, x_label, y1_data, y1_color, y1_label, y2_data, y2_color, y2_label, title):
-                           
-    
         
-def sell():
+def sell(df_blotter, collection):
     pair = {1:"BCH-USD", 2: "BTC-USD", 3: "ETH-USD", 4: "LTC-USD", 5: "Main Menu"}
     print("Please Choose From The Following Pair")
     print('\n')
@@ -210,33 +197,56 @@ def sell():
                 continue
    
         while True:
-            qty =  int(input("how many shares would you like to sell?: "))
+            qty =  int(input("how much would you like to sell?: "))
+            qty = (qty * -1)
             ask, bid = get_price(pair)
             
             price = float(bid)
-            print("The price for the pair is: " + str(bid))
+            print("\n\n")
+            print("The bid price for the pair is: " + str(bid))
             total_cost = float(qty * price)
-            print("your total is: " + str(total_cost))
+            print("your total sale is: " + str(total_cost))
+            print("\n")
             date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-            df_blotter = update_blotter(pair, qty, price, total_cost, date, df_blotter)
+            df_blotter = update_blotter(pair, qty, price, total_cost, date)
+            new_line = ({"Pair": pair, "Quantity" : qty, "Price": price, "Cost": total_cost, "Date": date})
+            #df_blotter = df_blotter.append(new_line, ignore_index = True)
+            update_db(new_line)
             
+            dailymin, dailymax = get_stats(pair)
+            print("\n")
+            print("The daily high for " + pair + " is " + str(dailymin))
+            print("The daily low for " + pair + " is " + str(dailymax))
+            
+            mean = dailymean(dailymin, dailymax)
+            print("\n")
+            print("The daily mean for " + pair + " is " + str(mean))
+            
+            stddev = stdev([dailymax, dailymin])
+            print("\n")
+            print("The daily standard deviation for " + pair + " is " + str(stddev))
+            print("\n")
+            
+            hist = history(pair)
+            print(hist)
             #df_pl = update_pl(pl, pair, qty, price, total_cost)
+            print("\n")
             print(df_blotter)
-    
+           
         
             print("\n\n")
-            print("Would You Like To Buy More or Return to Main Menu?: ")
+            print("Would You Like To Sell More or Return to Main Menu?: ")
             print("1. Sell Again")
             print("2. Main Menu")
-            finish = input("Please Choose [1-2]: ")
+            finish = int(input("Please Choose [1-2]: "))
             if finish == 1:
-                print(sell())
+                sell(df_blotter, collection)
             elif finish == 2:
                 print(main())
             else:
                 print("Not An Option")
                 print("\n\n")
-                print(sell())   
+                print(sell(df_blotter, collection))
         
         #return the value of the cash on hand
         #add values to pandas dataframe
@@ -250,10 +260,11 @@ def sell():
         #price2 = round(price * share_volume2,2)
         #price2 = str(price2)
         #print("Your total amount is : $"+price2)
-        
-    
 
-def view_blotter(df_blotter):
+def update_db(new_line):
+    db_blotter.insert_one(new_line)    
+
+def view_blotter(blotter):
     print("---- Trade Blotter")
     print(df_blotter)
     print("\n\n")
@@ -266,22 +277,6 @@ def view_pl(df_pl):
     print("\n\n")
 
 
-    
-    #get the mean to work, maybe this also needs to be a pandas dataframe
-
-
-#def get_historical(pair):
-    #df = client.get_product_historic_rates(pair, granularity = 86400)
-    #return df
-    #should this go to a pandas dataframe that I access?
-    
-
-
-def initialize_blotter():
-    col_names = ['Pair','Quantity','Price', 'Cost', 'Date']
-    return pd.DataFrame(columns=col_names)
-
-
 def initialize_pl():
     pair = ['BCH-USD', 'BTC-USD', 'ETH-USD', 'LTC-USD']
     col_names = ['Pair','Position','VWAP','UPL','RPL', 'Total PL', 'Allocated By Share', 'Allocated By Dollar']
@@ -292,16 +287,11 @@ def initialize_pl():
     pl = pl.set_index('Pair')
     return pl
 
+def update_cash(funds):
+    cash = blotter['Cash Balance'].iloc[-1]
+    return cash
 
-def update_blotter(pair, qty, price, total_cost, date, printout = False):
-    df_blotter = initialize_blotter()
-    col_names = ['Pair','Quantity','Price', 'Cost', 'Date']
-    row = (pair, qty, price, total_cost, date)
-    data = pd.DataFrame([row], columns=col_names)
-    df_blotter.append(data)
-    if printout:
-        print(df_blotter)
-    return df_blotter 
+
 
 def calc_vwap(current_qty,current_vwap,qty,price):
     dollar = current_qty * current_vwap
@@ -348,9 +338,13 @@ def update_pl(pl,pair,qty,price):
         # TODO update 'Allocated By Share', 'Allocated By Dollar'
         #results = pl.append(results)
         #add a return
-        
-#def current_cash():
-   # pass
+
+def blotter():
+    cols = ['Side','Pair','Volume','Executed Price', 'Time' , 'Cash Balance']
+    df_blotter = pd.DataFrame(index = [0], columns=cols)
+    return df_blotter
+
+
 
 def get_price(pair):
     #print("pairs are ...  " + str(pair))
@@ -379,16 +373,6 @@ def stddev(dailymax, dailymin):
     stdev([dailymax, dailymin])
     return stddev
 
-def hist_100():
-    hist_100 = datetime.now() - timedelta(days=100)
-    hist_100 = hist_100.isoformat() 
-    return hist_100
-
-def end():
-    end = datetime.now()
-    end = end.isoformat()
-    return end
-
 
 def history(pair):
 
@@ -400,11 +384,11 @@ def history(pair):
     
     x = history['time']
     y = history['close']
-    plt.title('100 Day Historical Data from ' + pair)
+    plt.title('100 Day Historical Data for ' + pair)
     graph = plt.plot(x,y)
     return plt.show(graph)
-     
 
+         
 
 def load(url,printout=False,delay=0,remove_bottom_rows=0,remove_columns=[]):
     header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'}
