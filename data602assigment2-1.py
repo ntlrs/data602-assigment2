@@ -72,7 +72,7 @@ def display_menu(menu,exit_option=-1):
 
 ################################################
 def buy():
-
+    
     pair = {1:"BCH-USD", 2: "BTC-USD", 3: "ETH-USD", 4: "LTC-USD", 5: "Main Menu"}
     print("Please Choose From The Following Pair")
     print('\n')
@@ -138,8 +138,8 @@ def buy():
             
             
             data = pd.DataFrame([["Buy", pair, qty, ask, date, total_cost]], columns= ['Side','Pair','Volume','Executed Price', 'Time' , 'Cash Balance'])
-            blotter_update = df_blotter.append(data, ignore_index = True)
-            print(blotter_update)
+            #blotter_update = df_blotter.append(data, ignore_index = True)
+            print(data)
             
             print("\n\n")
             print("Would You Like To Buy More or Return to Main Menu?: ")
@@ -340,10 +340,9 @@ def update_pl(pl,pair,qty,price):
         #add a return
 
 def blotter():
-    cols = ['Side','Pair','Volume','Executed Price', 'Time' , 'Cash Balance']
+    cols = ['Side','Pair','Volume','Executed Price', 'Time', 'Cash Balance']
     df_blotter = pd.DataFrame(index = [0], columns=cols)
     return df_blotter
-
 
 
 def get_price(pair):
