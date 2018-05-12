@@ -10,42 +10,40 @@ import requests
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
-
 from datetime import datetime, timedelta
-
 from pymongo import MongoClient
 from time import strftime, gmtime
 from statistics import stdev
 
+mongo = 'mongodb://test:test@ds235239.mlab.com:35239/data6022'
+client = MongoClient(mongo, connectTimeoutMS=30000)
+db = client.get_database("data602")
+db_blotter = db.db_blotter
    
 #reference: https://www.youtube.com/watch?v=8GRUwftKAps
+funds = 100000000.0 
 
 
                        
 def main():    
-    funds = 100000000.0 
-       
-    mongo = 'mongodb://test:test@ds235239.mlab.com:35239/data6022'
-    client = MongoClient(mongo, connectTimeoutMS=30000)
-    db = client.get_database("data602")
-    db_blotter = db.db_blotter
-    
+ 
     # Initialize data structures
     df_pl = initialize_pl()
-    
+    df_blotter = 
 
     # Design a menu a system 
     menu = ('Buy', 'Sell', 'Show Blotter', 'Show PL', 'Quit')
     while True:
         choice = display_menu(menu,exit_option=5)
         if choice == 1:
-            buy()
+            qty, crypto = select_crypt()
+            buy(cryot,df_blotter)
                     
         elif choice == 2:       
-            sell(db_blotter)
+            sell(df_blotter)
         
         elif choice == 3:
-            view_blotter(blotter)
+            view_blotter(df_blotter)
         
         elif choice == 4:
             view_pl(df_pl)
@@ -71,7 +69,33 @@ def display_menu(menu,exit_option=-1):
 
 
 ################################################
-def buy():
+    
+def select_crypto():
+    pair = ("BCH-USD", "BTC-USD", "ETH-USD", "LTC-USD", "Main Menu")
+    for p in pair:
+        print(pair.index(p)+1,"   ", p)
+    crypto = int(input("Please Choose From The Above Pair or Return to Main Menu: "))
+    qty =  int(input("how much would you like to purchase?: "))   
+    if trade == 5:
+        main()
+    return crypto, qty
+    
+    print("Please Choose From The Following Pair or Return to Main Menu")
+    print('\n')
+    print("1. BCH-USD" )
+    print("2. BTC-USD" )
+    print("3. ETH-USD" )
+    print("4. LTC-USD" )
+    print("5. Return to Main Menu")
+    print('\n\n')
+    
+    
+    
+    return qty, pair
+        
+def buy(blotter):
+    
+    transactions = []
     
     pair = {1:"BCH-USD", 2: "BTC-USD", 3: "ETH-USD", 4: "LTC-USD", 5: "Main Menu"}
     print("Please Choose From The Following Pair")
@@ -101,9 +125,7 @@ def buy():
             if buying > 5:
                 print("Not an option")
                 continue
-   
-    
-        
+           
         
         while True:
             
@@ -137,9 +159,9 @@ def buy():
             
             
             
-            data = pd.DataFrame([["Buy", pair, qty, ask, date, total_cost]], columns= ['Side','Pair','Volume','Executed Price', 'Time' , 'Cash Balance'])
-            #blotter_update = df_blotter.append(data, ignore_index = True)
-            print(data)
+            transactions = pd.DataFrame([["Buy", pair, qty, ask, date, total_cost]], columns= ['Side','Pair','Volume','Executed Price', 'Time' , 'Cash'])
+            blotter.append(transactions, ignore_index = True)
+            print(transactions)
             
             print("\n\n")
             print("Would You Like To Buy More or Return to Main Menu?: ")
@@ -147,14 +169,15 @@ def buy():
             print("2. Main Menu")
             finish = int(input("Please Choose [1-2]: "))
             if finish == 1:
-                buy(db_blotter, df_blotter, blotter)
+                buy(df_blotter)
             elif finish == 2:
-                print(main())
+                main()
             else:
                 print("Not An Option")
                 print("\n\n")
-                print(buy(db_blotter, df_blotter, blotter))
+                print(buy(df_blotter))
             
+           
             
             #if cost > cash:
             # print("Not Enough Cash For Transaction")
@@ -165,9 +188,9 @@ def buy():
         #return the value of the cash on hand
         #add values to pandas dataframe
         
+        return blotter
         
-        
-def sell(df_blotter, collection):
+def sell(df_blotter):
     pair = {1:"BCH-USD", 2: "BTC-USD", 3: "ETH-USD", 4: "LTC-USD", 5: "Main Menu"}
     print("Please Choose From The Following Pair")
     print('\n')
@@ -208,10 +231,10 @@ def sell(df_blotter, collection):
             print("your total sale is: " + str(total_cost))
             print("\n")
             date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-            df_blotter = update_blotter(pair, qty, price, total_cost, date)
-            new_line = ({"Pair": pair, "Quantity" : qty, "Price": price, "Cost": total_cost, "Date": date})
+            #df_blotter = update_blotter(pair, qty, price, total_cost, date)
+           # new_line = ({"Pair": pair, "Quantity" : qty, "Price": price, "Cost": total_cost, "Date": date})
             #df_blotter = df_blotter.append(new_line, ignore_index = True)
-            update_db(new_line)
+            #update_db(new_line)
             
             dailymin, dailymax = get_stats(pair)
             print("\n")
@@ -240,7 +263,7 @@ def sell(df_blotter, collection):
             print("2. Main Menu")
             finish = int(input("Please Choose [1-2]: "))
             if finish == 1:
-                sell(df_blotter, collection)
+                sell(df_blotter)
             elif finish == 2:
                 print(main())
             else:
@@ -264,11 +287,19 @@ def sell(df_blotter, collection):
 def update_db(new_line):
     db_blotter.insert_one(new_line)    
 
-def view_blotter(blotter):
-    print("---- Trade Blotter")
-    print(df_blotter)
-    print("\n\n")
+def update_blotter():
+     blotter = pd.DataFrame(transactions)
+     blotter.columns = ['Side','Ticker','Qty','Price','Date','Cost','Cash']
+     blotter.drop(['Cash'], axis = 1, inplace = True) 
+     print("---- Trade Blotter")
+     print(blotter)
+     print("\n\n")
+     return blotter
+ 
+def update_blotter(transactions):
+    
 
+    
 
 def view_pl(df_pl):
     # TODO Update UPL here
@@ -286,10 +317,6 @@ def initialize_pl():
         pl = pl.append(data, ignore_index=True)
     pl = pl.set_index('Pair')
     return pl
-
-def update_cash(funds):
-    cash = blotter['Cash Balance'].iloc[-1]
-    return cash
 
 
 
@@ -339,11 +366,6 @@ def update_pl(pl,pair,qty,price):
         #results = pl.append(results)
         #add a return
 
-def blotter():
-    cols = ['Side','Pair','Volume','Executed Price', 'Time', 'Cash Balance']
-    df_blotter = pd.DataFrame(index = [0], columns=cols)
-    return df_blotter
-
 
 def get_price(pair):
     #print("pairs are ...  " + str(pair))
@@ -387,7 +409,7 @@ def history(pair):
     graph = plt.plot(x,y)
     return plt.show(graph)
 
-         
+       
 
 def load(url,printout=False,delay=0,remove_bottom_rows=0,remove_columns=[]):
     header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'}
@@ -404,3 +426,4 @@ def load(url,printout=False,delay=0,remove_bottom_rows=0,remove_columns=[]):
 
 if __name__ == "__main__":
     main()
+

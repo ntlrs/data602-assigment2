@@ -102,16 +102,17 @@ base_id = pd.DataFrame(base_id)
 poloniex_df = base_id['symbol_id'].str.split('_',expand=True)
 poloniex_df = poloniex_df.loc[poloniex_df[0] == 'POLONIEX']
 poloniex_df = poloniex_df.loc[poloniex_df[3] == 'USDT']
-poloniex_df = poloniex_df.reset_index()
+poloniex_df.columns = ['exchange', 'type', 'coin 1', 'coin 2', '4','5','6']
+poloniex_df = poloniex_df[['exchange', 'type', 'coin 1', 'coin 2']]
+poloniex_df["pair"] = poloniex_df["exchange"].map(str) + '_' + poloniex_df["type"]+'_'+poloniex_df["coin 1"]+'_'+poloniex_df["coin 2"]
+poloniex_pair = poloniex_df[['pair']] 
 
 
-def poloniex_pair():
-    poloniex_df['pair']=poloniex_df.astype(str).apply(lambda x:'%s_%s' % (x['0'],x['1']))
-    return poloniex_df
+
 
 
 def get_hist():
-    url = 'https://rest.coinapi.io/v1/ohlcv/POLONIEX_SPOT_ETH_USDT/latest?period_id=1DAY&time_start=2017-05-07T00:00:00&limit=365'
+    url = 'https://rest.coinapi.io/v1/ohlcv/'+ poloniex_pair + '/latest?period_id=1DAY&time_start=2017-05-07T00:00:00&limit=365'
     headers = {'X-CoinAPI-Key' : '68FDBBAF-CA59-4D11-A41E-51C9D2B67DA4'}
     hist = r.get(url, headers=headers)
     data = hist.text
