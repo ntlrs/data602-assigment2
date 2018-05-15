@@ -29,7 +29,7 @@ def main():
  
     # Initialize data structures
     df_pl = initialize_pl()
-    df_blotter = 
+    df_blotter = initialize_blotter()
 
     # Design a menu a system 
     menu = ('Buy', 'Sell', 'Show Blotter', 'Show PL', 'Quit')

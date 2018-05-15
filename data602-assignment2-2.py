@@ -25,7 +25,6 @@ def main():
    # Initialize data structures
     df_blotter = initialize_blotter()
     df_pl = initialize_pl(pair)
-    
 
    # Design a menu a system
     menu = ('Buy', 'Sell', 'Show Blotter', 'Show PL', 'Quit')
@@ -37,11 +36,11 @@ def main():
                 ask, bid = get_price(pair)               
                 price = float(ask)
                 total_cost = float(qty * price)
-                date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
                 show_stats(pair)
-                transaction = trade(pair, qty, ask, bid, date, price, total_cost)
-                df_blotter.append(transaction)
-                
+                print("Buying "+ str(qty) + " share of " + pair + " for " + str(total_cost))
+                blotter = trade(pair, qty, price, total_cost)
+                df_blotter.append(blotter)
+                return df_blotter   
             else:
                 pass
            
@@ -50,13 +49,15 @@ def main():
             qty = -1 * qty
             if pair != "Back":
                 ask, bid = get_price(pair)
-                print(bid)
                 price = float(bid)
                 total_cost = float(qty * price)
-                date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
                 show_stats(pair)
-                transaction = trade(pair, qty, ask, bid, date, price, total_cost)
-                df_blotter.append(transaction)
+                print("Selling " + str(qty) + " share of " + pair + " for " + str(total_cost))
+                blotter = trade(pair, qty, price, total_cost)
+                df_blotter.append(blotter)
+                return df_blotter
+            else:
+                pass
             
         elif choice == 3:
             view_blotter(df_blotter)
@@ -71,21 +72,23 @@ def main():
 
 def display_menu(menu,exit_option=-1):
     for m in menu:
-        print(menu.index(m)+1,". ",m)
-    choice = int(input("Enter choice >> #"))
+        print(menu.index(m)+1,".  ",m)
+    choice = int(input("Enter choice [1-5]: "))
     if choice==exit_option:
         print("Bye")
         quit()
     return choice
 
-def trade(pair, qty, ask, bid, date, price, total_cost):
-    transaction = pd.DataFrame([[pair, qty, ask, date, total_cost]])
+def trade(pair, qty, price, total_cost):
+    blotter = []
+    date = strftime("%Y-%m-%d %H:%M:%S", gmtime()) 
     confirm = input("Confirm Transaction [Y/N]: ")
-    conf = confirm.lower()
-    if conf=="y":
-        return transaction
-    else:
-        return
+    conf = confirm.upper()
+    if conf=="Y" or "y":
+        transaction = [pair, qty, price, date, total_cost]
+        blotter.append(transaction)
+        print("Tranaction Complete")
+    return blotter
          
 
 def show_stats(pair):
@@ -105,33 +108,33 @@ def show_stats(pair):
 def select_crypto():
     pair = ["BCH-USD", "BTC-USD",  "ETH-USD",  "LTC-USD", "Back"]
     for p in pair:
-        print(pair.index(p)+1,"   ", p)
+        print(pair.index(p)+1,".  ", p)
     crypto = int(input("Please Choose From The Following Pair or Return to Main Menu: "))
     item = crypto-1
     pair = pair[item]
     qty =  int(input("How Many Shares Would You Like To Trade?: "))   
     return pair, qty
 
-#def calc_vwap(current_qty,current_vwap,qty,price):
-    #dollar = current_qty * current_vwap
-    #new_dollar = dollar + (qty * price)
-    #new_qty = current_qty + qty
-    #new_vwap = new_dollar / new_qty
-    #return new_vwap
+def calc_vwap(current_qty,current_vwap,qty,price):
+    dollar = current_qty * current_vwap
+    new_dollar = dollar + (qty * price)
+    new_qty = current_qty + qty
+    new_vwap = new_dollar / new_qty
+    return new_vwap
 
-#def update_pl(pl,pair,qty,price):
-    #if qty > 0: # buy
-       # current_qty = pl.at[pair,'Position']
-        #current_vwap = pl.at[pair,'VWAP']
-        #new_vwap = calc_vwap(current_qty,current_vwap,qty,price) #bid
-        #pl.at[pair,'Position'] = current_qty + qty
-        #pl.at[pair,'VWAP'] = new_vwap
-        #mkt_value = qty * current_vwap
-        #upl = price - mkt_value
-        #pl.at[pair, 'UPL'] = upl
-        #rpl = pl.at[pair, 'RPL']
-        #total_pl = upl + rpl
-        #pl.at[pair, 'Total PL'] = total_pl
+def update_pl(pl,pair,qty,price):
+    if qty > 0: # buy
+        current_qty = pl.at[pair,'Position']
+        current_vwap = pl.at[pair,'VWAP']
+        new_vwap = calc_vwap(current_qty,current_vwap,qty,price) #bid
+        pl.at[pair,'Position'] = current_qty + qty
+        pl.at[pair,'VWAP'] = new_vwap
+        mkt_value = qty * current_vwap
+        upl = price - mkt_value
+        pl.at[pair, 'UPL'] = upl
+        rpl = pl.at[pair, 'RPL']
+        total_pl = upl + rpl
+        pl.at[pair, 'Total PL'] = total_pl
         
         
         
@@ -139,20 +142,20 @@ def select_crypto():
         #results = pl.append(results)
         #add a return
     
-    #elif qty < 0: #sell
-        #current_qty = pl.at[pair,'Position']
-        #current_vwap = pl.at[pair,'VWAP']
-        #new_vwap = calc_vwap(current_qty,current_vwap,qty,price) #ask
-        #pl.at[pair, 'Position'] = current_qty - qty
-        #pl.at[pair,'VWAP'] = new_vwap
-        #rpl = (price - current_vwap) * qty
-        #pl.at[pair, 'RPL'] = rpl
-        #new_upl = (current_qty * current_vwap) - rpl
-        #pl.at[pair, 'UPL'] = new_upl
-        #total_pl = upl + rpl
-        #pl.at[pair, 'Total PL'] = total_pl
-        
-        #print("Insert code handling a sale - recalc UPL,RPL & position")
+    elif qty < 0: #sell
+        current_qty = pl.at[pair,'Position']
+        current_vwap = pl.at[pair,'VWAP']
+        new_vwap = calc_vwap(current_qty,current_vwap,qty,price) #ask
+        pl.at[pair, 'Position'] = current_qty - qty
+        pl.at[pair,'VWAP'] = new_vwap
+        rpl = (price - current_vwap) * qty
+        pl.at[pair, 'RPL'] = rpl
+        new_upl = (current_qty * current_vwap) - rpl
+        pl.at[pair, 'UPL'] = new_upl
+        total_pl = upl + rpl
+        pl.at[pair, 'Total PL'] = total_pl
+    
+        print("Insert code handling a sale - recalc UPL,RPL & position")
 
 
 def view_blotter(df_blotter):
@@ -177,8 +180,11 @@ def get_price(pair):
 
 
 def initialize_blotter():
-    col_names = ['Side','Ticker','Qty','Price','Date','Cost','Cash']
-    return pd.DataFrame(columns=col_names)
+    cols = ['Side','Ticker','Qty','Price','Date','Cost','Cash']
+    df_blotter = pd.DataFrame(columns= cols)
+    df_blotter.drop(['Cash'], axis = 1, inplace = True) 
+    return df_blotter
+
 
 
 def initialize_pl(pair):
@@ -214,6 +220,7 @@ def history(pair):
     history = history[:100]    
     x = history['time']
     y = history['close']
+    plt.xticks(rotation=45)
     plt.title('100 Day Historical Data for ' + pair)
     graph = plt.plot(x,y)
     return plt.show(graph)
