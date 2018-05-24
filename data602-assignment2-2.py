@@ -10,13 +10,13 @@ import requests
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
-import io
+
 import time
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from time import strftime, gmtime
 from statistics import stdev
-import urllib
+
 
 
 
@@ -52,7 +52,7 @@ def main():
                 main()
                 return blotter
             else:
-                sys.exit()
+                break
            
         elif choice == 2:
             pair, qty = select_crypto()
@@ -69,7 +69,7 @@ def main():
                 main() 
                 return blotter
             else:
-                main()
+                break
             
         elif choice == 3:
             view_blotter(blotter)
