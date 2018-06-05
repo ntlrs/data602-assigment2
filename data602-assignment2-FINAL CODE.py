@@ -23,6 +23,7 @@ from statistics import stdev
 
 def main():    
    # Initial portfolio size in cash
+   #main function
     funds = 100000000.0
     pair = ["BCH-USD","BTC-USD","ETH-USD","LTC-USD"] # assume usd base
     
@@ -82,6 +83,7 @@ def main():
           return
 
 def display_menu(menu,exit_option=-1):
+   #display menu for main
     for m in menu:
         print(menu.index(m)+1,".  ",m)
     choice = int(input("Enter choice [1-5]: "))
@@ -91,6 +93,7 @@ def display_menu(menu,exit_option=-1):
     return choice
 
 def trade(pair, qty, price, total_cost, funds, db_blotter):
+   #trader menu 
     db = MongoClient('localhost', 27017)
     db_blotter = db["blotter"]["blotter"]
     blotter = []
@@ -111,6 +114,7 @@ def trade(pair, qty, price, total_cost, funds, db_blotter):
 
 
 def calc_vwap(current_qty,current_vwap,qty,price):
+   #calculate VWAP for stocks
     dollar = current_qty * current_vwap
     new_dollar = dollar + (qty * price)
     new_qty = current_qty + qty
@@ -119,7 +123,7 @@ def calc_vwap(current_qty,current_vwap,qty,price):
 
 
 def update_pl():
-
+   #calculates profite and loss. Stored in MongoDB database
     
     db = MongoClient('localhost', 27017)
     db_blotter = db["blotter"]["blotter"]
@@ -166,6 +170,7 @@ def update_pl():
     
 
 def show_stats(pair):
+   #shows the current status of available pairs, including daily high, low, mean, SD.
     print("\n")
     dailymin, dailymax = get_stats(pair)
     print("The daily high for " + pair + " is " + str(dailymin))
@@ -180,6 +185,7 @@ def show_stats(pair):
 
    
 def select_crypto():
+   #available crypto currencies:
     pair = ["BCH-USD", "BTC-USD",  "ETH-USD",  "LTC-USD", "Back"]
     for p in pair:
         print(pair.index(p)+1,".  ", p)
@@ -191,6 +197,7 @@ def select_crypto():
 
 
 def view_blotter(blotter):
+   #Blotter for trades, stored in Mongo DB
     db = MongoClient('localhost', 27017)
     db_blotter = db["blotter"]["blotter"]
     print("Trade Blotter")
@@ -202,6 +209,7 @@ def view_blotter(blotter):
 
 
 def get_price(pair):
+   #gets current prices for pairs
     df = load('https://api.gdax.com/products/'+ str(pair) +'/book',printout=False)
     pricedf = pd.DataFrame(df, index = [0]) 
     ask = pricedf.iloc[0]['asks'][0]
@@ -220,14 +228,17 @@ def get_price(pair):
     #return pl
 
 def dailymean(dailymax, dailymin):
+   #daily mean for pair
     mean = (dailymax + dailymin) / 2
     return mean
 
 def stddev(dailymax, dailymin):
+   #daily standard deviation of price for pair
     stdev([dailymax, dailymin])
     return stddev
 
 def get_stats(pair):
+   #parses website to get stats on daily high and low.
     stats = requests.get('https://api.gdax.com/products/'+pair+'/stats')
     data = stats.text
     parsed = json.loads(data)
@@ -236,6 +247,7 @@ def get_stats(pair):
     return float(dailymax), float(dailymin)
 
 def history(pair):
+   #gets 100 day historical information on prices. 
     history = requests.get('https://api.gdax.com/products/' + pair + '/candles?granularity=86400')
     history = pd.read_json(history.text)
     history.columns = ['time', 'low', 'high','open','close', 'volume']
@@ -250,6 +262,7 @@ def history(pair):
 
 
 def load(url,printout=False,delay=0,remove_bottom_rows=0,remove_columns=[]):
+   #loads data into a pandas dataframe
     time.sleep(delay)
     header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'}
     r = requests.get(url, headers=header)
